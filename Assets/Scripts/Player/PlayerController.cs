@@ -104,17 +104,6 @@ public partial class @PlayerControls: IInputActionCollection2, IDisposable
                 },
                 {
                     ""name"": """",
-                    ""id"": ""1f7cb376-014d-4869-8a42-adb40614657d"",
-                    ""path"": ""<Mouse>/leftButton"",
-                    ""interactions"": """",
-                    ""processors"": """",
-                    ""groups"": """",
-                    ""action"": ""Shoot"",
-                    ""isComposite"": false,
-                    ""isPartOfComposite"": false
-                },
-                {
-                    ""name"": """",
                     ""id"": ""c48c5dd7-259b-46e9-a07f-15f67c61de75"",
                     ""path"": ""<Gamepad>/buttonSouth"",
                     ""interactions"": """",
