@@ -5,6 +5,9 @@ using UnityEngine;
 [RequireComponent(typeof(PlayerInputHandler))]
 public class PlayerCharacter : MonoBehaviour
 {
+    public PlayerStats Stats;
+    [SerializeField] ShooterComponent shooterComponent;
+    public ShooterComponent ShooterComponent => shooterComponent;
     // Зависимость (Dependency Injection) через интерфейс
     private IPlayerInput _input;
     private Rigidbody _rb;
@@ -12,6 +15,11 @@ public class PlayerCharacter : MonoBehaviour
 
     public float MoveSpeed = 5f;
 
+    private void Awake()
+    {
+        Stats = new PlayerStats();
+        Stats.Initialize();
+    }
     void Start()
     {
         // Получаем ссылку на наш обработчик через интерфейс
@@ -62,5 +70,10 @@ public class PlayerCharacter : MonoBehaviour
             _input.OnMove -= HandleMoveInput;
             _input.OnShoot -= HandleShootInput;
         }
+    }
+
+    public void StopShooting()
+    {
+        shooterComponent.StopShooting();
     }
 }

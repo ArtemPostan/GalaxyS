@@ -3,6 +3,8 @@ using System.Collections.Generic;
 
 public class SpawnManager : MonoBehaviour
 {
+
+    [SerializeField] GameController controller;
     // --- Параметры для настройки в инспекторе ---
 
     [Header("Базовые Префабы")]
@@ -29,7 +31,7 @@ public class SpawnManager : MonoBehaviour
 
     // --- Управление ---
 
-    private bool isSpawning = false;
+    public bool isSpawning = false;
     private float nextSpawnTime;
 
     // Свойство для получения текущей конфигурации уровня
@@ -59,8 +61,8 @@ public class SpawnManager : MonoBehaviour
             nextSpawnTime = Time.time + CurrentConfig.spawnInterval;
         }
 
-        StartSpawning();
-    }
+        //StartSpawning();
+    }    
 
     void Update()
     {
@@ -85,7 +87,7 @@ public class SpawnManager : MonoBehaviour
     /// <summary>
     /// Останавливает генерацию.
     /// </summary>
-    public void StopSpawning()
+    private void StopSpawning()
     {
         isSpawning = false;
     }
@@ -93,18 +95,18 @@ public class SpawnManager : MonoBehaviour
     /// <summary>
     /// Повышает уровень сложности.
     /// </summary>
-    public void IncreaseLevel()
-    {
-        if (currentLevel < levelConfigs.Count - 1)
-        {
-            currentLevel++;
-            Debug.Log($"Уровень сложности повышен до: {currentLevel + 1}. Интервал: {CurrentConfig.spawnInterval}с");
-        }
-        else
-        {
-            Debug.Log("Достигнут максимальный уровень сложности.");
-        }
-    }
+    //public void IncreaseLevel()
+    //{
+    //    if (currentLevel < levelConfigs.Count - 1)
+    //    {
+    //        currentLevel++;
+    //        Debug.Log($"Уровень сложности повышен до: {currentLevel + 1}. Интервал: {CurrentConfig.spawnInterval}с");
+    //    }
+    //    else
+    //    {
+    //        Debug.Log("Достигнут максимальный уровень сложности.");
+    //    }
+    //}
 
     // --- Логика генерации ---
 
@@ -131,13 +133,8 @@ public class SpawnManager : MonoBehaviour
         // 3. Настраиваем движение и лимит уничтожения
         // enemyData.speed = config.enemySpeed;
         enemyData.SetDestroyZPosition(destroyLimitZ);
+        
     }
-
-    // 5. Настраиваем движение и лимит уничтожения в EnemyData
-    // Примечание: Убедитесь, что в EnemyData есть метод SetDestroyZPosition(float z)
-    // enemyData.speed = config.enemySpeed; // Если EnemyData управляет скоростью
-    // enemyData.SetDestroyZPosition(destroyLimitZ);
-
 
     private void CreateShapesInSquare(EnemyData enemyData, LevelConfig config)
     {
@@ -188,6 +185,7 @@ public class SpawnManager : MonoBehaviour
                 if (shapeComponent != null)
                 {
                     shapeComponent.health = totalHealth;
+                    controller.SubscribeToShape(shapeComponent);
                     // Подписка должна происходить в EnemyData.Start/Awake
                 }
                 else
@@ -198,5 +196,34 @@ public class SpawnManager : MonoBehaviour
                 shapeCounter++;
             }
         }
+    }
+
+    public void ClearAllEnemies()
+    {
+        StopSpawning();
+
+        // 2. Находим все объекты, содержащие EnemyData (ваши основные вражеские контейнеры)
+        EnemyData[] activeEnemies = FindObjectsOfType<EnemyData>();
+
+        // 3. Уничтожаем каждый найденный объект
+        foreach (EnemyData enemy in activeEnemies)
+        {
+            // Используем DestroyImmediate для немедленного удаления, 
+            // или просто Destroy(enemy.gameObject) для удаления в конце кадра.
+            // Для перехода между уровнями достаточно простого Destroy.
+            Destroy(enemy.gameObject);
+        }
+
+        // Очистка всех пуль
+        // Если пули имеют отдельный скрипт (например, Bullet), можно также очистить и их
+        Bullet[] bullets = FindObjectsOfType<Bullet>();
+        foreach (Bullet bullet in bullets)
+        {
+            Destroy(bullet.gameObject);
+        }
+
+        PlayersManagerSingletone.Instance.LocalPlayer.ShooterComponent.StopShooting();
+
+        Debug.Log($"Уничтожено {activeEnemies.Length} врагов и {bullets.Length} пуль.");
     }
 }
