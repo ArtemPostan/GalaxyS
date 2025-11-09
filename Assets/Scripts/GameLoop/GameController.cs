@@ -1,6 +1,5 @@
-using System;
+п»їusing System;
 using System.Collections.Generic;
-using Unity.VisualScripting.Antlr3.Runtime;
 using UnityEngine;
 
 public class GameController : MonoBehaviour
@@ -11,16 +10,15 @@ public class GameController : MonoBehaviour
     [SerializeField] private int _killsToWin = 1;
     public int CurrentKills { get; private set; } = 0;
 
-    [SerializeField] SpawnManager spawnManager;
-    [SerializeField] UIManager UIManager;
-    public int CurrentLevel { get; private set; } = 1;
+    [SerializeField] private SpawnManager spawnManager;
+    [SerializeField] private UIManager uiManager;
+    [SerializeField] private LevelInfo levelInfo;  
 
     private IGameState _currentState;
     private Dictionary<GameState, IGameState> _allStates;
 
     private void Awake()
     {
-        // Инициализация всех возможных состояний
         _allStates = new Dictionary<GameState, IGameState>()
         {
             { GameState.LevelStart, new LevelStartState() },
@@ -28,13 +26,73 @@ public class GameController : MonoBehaviour
             { GameState.InterLevelMenu, new InterLevelMenuState() }
         };
 
-        // Начинаем с подготовки к первому уровню
         ChangeState(GameState.LevelStart);
+      
+
+        // РџРѕРґРїРёСЃС‹РІР°РµРјСЃСЏ РЅР° СЃРѕР±С‹С‚РёРµ СЃРїР°СѓРЅР° РЅРѕРІС‹С… РІСЂР°РіРѕРІ
+        spawnManager.OnEnemySpawned += OnEnemySpawnedHandler;
     }
 
-   
+    private void Start()
+    {
+        uiManager.InitializePlayerUI();
+    }
 
- 
+    private void OnDestroy()
+    {
+        spawnManager.OnEnemySpawned -= OnEnemySpawnedHandler;
+    }
+
+    // рџљЂ РљРѕРіРґР° РїРѕСЏРІР»СЏРµС‚СЃСЏ РЅРѕРІС‹Р№ РІСЂР°Рі
+    private void OnEnemySpawnedHandler(EnemyData newEnemy)
+    {
+        // РџРѕРґРїРёСЃС‹РІР°РµРјСЃСЏ РЅР° СЃРѕР±С‹С‚РёСЏ С‡Р°СЃС‚РµР№ РІСЂР°РіР°
+        foreach (var shape in newEnemy.GetComponentsInChildren<Shape>())
+        {
+            shape.OnShapeDestroyed += OnShapeDestroyedHandler;
+        }
+
+        // РњРѕР¶РЅРѕ РїРѕРґРїРёСЃР°С‚СЊСЃСЏ Рё РЅР° Р±РѕРЅСѓСЃРЅРѕРµ СЃРѕР±С‹С‚РёРµ РІСЂР°РіР°, РµСЃР»Рё РЅСѓР¶РЅРѕ
+        newEnemy.OnEnemyCompletelyDestroyed += OnEnemyBonusHandler;
+    }
+
+    private void OnEnemyBonusHandler(int bonus)
+    {
+        var player = PlayersManagerSingletone.Instance.LocalPlayer;
+        player.Stats.score += bonus;
+        player.Stats.scoreInCurrentLevel += bonus;
+
+        Debug.Log($"рџ’° Р‘РѕРЅСѓСЃРЅС‹Рµ РѕС‡РєРё Р·Р° СѓРЅРёС‡С‚РѕР¶РµРЅРёРµ РІСЂР°РіР°: {bonus}");
+    }
+
+    private void OnShapeDestroyedHandler(Shape destroyedShape)
+    {
+        // РћС‚РїРёСЃС‹РІР°РµРјСЃСЏ, С‡С‚РѕР±С‹ РЅРµ Р»РѕРІРёС‚СЊ РїРѕРІС‚РѕСЂРЅРѕ
+        destroyedShape.OnShapeDestroyed -= OnShapeDestroyedHandler;
+
+        int points = destroyedShape.GetScore();
+        var player = PlayersManagerSingletone.Instance.LocalPlayer;
+
+        player.Stats.score += points;
+        player.Stats.scoreInCurrentLevel += points;
+        CurrentKills++;
+
+        Debug.Log($"рџ§© Shape СѓРЅРёС‡С‚РѕР¶РµРЅ! +{points} РѕС‡РєРѕРІ. Р’СЃРµРіРѕ СѓР±РёР№СЃС‚РІ: {CurrentKills}");
+        uiManager.UpdatePlayerUI();
+        CheckLevelCompletion();
+    }
+
+    private void CheckLevelCompletion()
+    {
+        if (PlayersManagerSingletone.Instance.LocalPlayer.Stats.scoreInCurrentLevel >= levelInfo.GetScoreToWin())
+        {
+            if (_currentState is InGameState)
+            {
+                EndLevel();
+            }
+        }
+    }
+
     public void ChangeState(GameState newStateKey)
     {
         _currentState?.ExitState(this);
@@ -42,93 +100,45 @@ public class GameController : MonoBehaviour
         if (_allStates.TryGetValue(newStateKey, out var newState))
         {
             _currentState = newState;
-            Debug.Log($"<color=yellow>Смена состояния:</color> {newStateKey}");
+            Debug.Log($"<color=yellow>РЎРјРµРЅР° СЃРѕСЃС‚РѕСЏРЅРёСЏ:</color> {newStateKey}");
             _currentState.EnterState(this);
         }
     }
 
- 
     public void StartLevel()
     {
-        
         spawnManager.isSpawning = true;
         spawnManager.StartSpawning();
-        PlayersManagerSingletone.Instance.LocalPlayer.ShooterComponent.StartShooting();
+
+        var player = PlayersManagerSingletone.Instance.LocalPlayer;
+        player.MoveComponent.StopMovement(false);
+        player.ShooterComponent.StartShooting();
     }
 
-    // Метод 2: Открытие магазина (логика, вызываемая из InterLevelMenuState)
     public void OpenInterLevelMenu(bool isOpen)
     {
-        UIManager.OnShopOpen(isOpen);
-
+        uiManager.OnShopOpen(isOpen);
         OnShopUpdate?.Invoke();
     }
 
-    // Метод 3: Конец уровня (Вызывается извне, например, от скрипта триггера победы)
     public void EndLevel()
     {
-        if (_currentState.GetType() == typeof(InGameState))
+        if (_currentState is InGameState)
         {
+            levelInfo.IncrementScoreToWin();
+            PlayersManagerSingletone.Instance.LocalPlayer.Stats.ResetScore();
+            PlayersManagerSingletone.Instance.LocalPlayer.Stats.currentLevel++;
+            uiManager.UpdatePlayerUI();
+            PlayersManagerSingletone.Instance.LocalPlayer.MoveComponent.StopMovement(true);
             spawnManager.ClearAllEnemies();
-            //spawnManager.isSpawning = false;
-            Debug.Log($"Уровень {CurrentLevel} пройден. Готовим магазин...");
-            CurrentLevel++; // Подготовка к следующему уровню
+          
             ChangeState(GameState.InterLevelMenu);
         }
     }
 
-    // Метод 4: Закрытие магазина (Вызывается из UI магазина по нажатию кнопки "Продолжить")
     public void CloseInterLevelMenu()
     {
-        Debug.Log("Закрытие магазина");
+        Debug.Log("Р—Р°РєСЂС‹С‚РёРµ РјР°РіР°Р·РёРЅР°");
         ChangeState(GameState.LevelStart);
     }
-
-    public void ResetLevelData()
-    {
-        CurrentKills = 0;
-        // Здесь же можно сбрасывать таймеры, ресурсы и т.д.
-    }   
-
-    private void CheckLevelCompletion()
-    {
-        // Условие победы: Убито достаточно врагов
-        if (CurrentKills >= _killsToWin)
-        {
-            // Важно: проверяем, что мы вообще находимся в игровом состоянии
-            if (_currentState.GetType() == typeof(InGameState))
-            {
-                // Вызываем ваш существующий метод EndLevel
-                EndLevel();
-            }
-        }
-    }
-
-    public void SubscribeToShape(Shape shape)
-    {
-        // Подписываем метод-обработчик на событие
-        shape.OnShapeDestroyed += OnShapeDestroyedHandler;
-    }
-
-    // 2. Метод-обработчик события
-    private void OnShapeDestroyedHandler(Shape destroyedShape)
-    {      
-        destroyedShape.OnShapeDestroyed -= OnShapeDestroyedHandler;
-       
-        CurrentKills++;
-        Debug.Log($"Убито: {CurrentKills}");       
-        CheckLevelCompletion();
-    }
-
-    public IGameState GetCurrentState()
-    {
-        return _currentState;
-    }
-
-    public void CleanLevel()
-    {
-
-    }
-
-    
 }

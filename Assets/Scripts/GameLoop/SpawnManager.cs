@@ -1,45 +1,47 @@
-using UnityEngine;
+п»їusing System;
 using System.Collections.Generic;
+using UnityEngine;
 
 public class SpawnManager : MonoBehaviour
 {
+    public event Action<EnemyData> OnEnemySpawned;
 
     [SerializeField] GameController controller;
-    // --- Параметры для настройки в инспекторе ---
+    // --- РџР°СЂР°РјРµС‚СЂС‹ РґР»СЏ РЅР°СЃС‚СЂРѕР№РєРё РІ РёРЅСЃРїРµРєС‚РѕСЂРµ ---
 
-    [Header("Базовые Префабы")]
-    [Tooltip("Префаб, используемый как 'заготовка' врага (должен содержать EnemyData).")]
+    [Header("Р‘Р°Р·РѕРІС‹Рµ РџСЂРµС„Р°Р±С‹")]
+    [Tooltip("РџСЂРµС„Р°Р±, РёСЃРїРѕР»СЊР·СѓРµРјС‹Р№ РєР°Рє 'Р·Р°РіРѕС‚РѕРІРєР°' РІСЂР°РіР° (РґРѕР»Р¶РµРЅ СЃРѕРґРµСЂР¶Р°С‚СЊ EnemyData).")]
     public GameObject baseEnemyPrefab;
 
-    [Tooltip("Префаб одного Shape (должен содержать Shape и TextMeshPro).")]
+    [Tooltip("РџСЂРµС„Р°Р± РѕРґРЅРѕРіРѕ Shape (РґРѕР»Р¶РµРЅ СЃРѕРґРµСЂР¶Р°С‚СЊ Shape Рё TextMeshPro).")]
     public GameObject baseShapePrefab;
 
-    [Header("Настройки Сложности")]
-    [Tooltip("Конфигурации для разных уровней сложности.")]
+    [Header("РќР°СЃС‚СЂРѕР№РєРё РЎР»РѕР¶РЅРѕСЃС‚Рё")]
+    [Tooltip("РљРѕРЅС„РёРіСѓСЂР°С†РёРё РґР»СЏ СЂР°Р·РЅС‹С… СѓСЂРѕРІРЅРµР№ СЃР»РѕР¶РЅРѕСЃС‚Рё.")]
     public List<LevelConfig> levelConfigs;
-    public int currentLevel = 0; // Текущий уровень (начинается с 0)
+    public int currentLevel = 0; // РўРµРєСѓС‰РёР№ СѓСЂРѕРІРµРЅСЊ (РЅР°С‡РёРЅР°РµС‚СЃСЏ СЃ 0)
 
-    [Header("Настройки Генерации")]
-    [Tooltip("Позиция по Z, откуда фигуры начинают лететь (за горизонтом).")]
+    [Header("РќР°СЃС‚СЂРѕР№РєРё Р“РµРЅРµСЂР°С†РёРё")]
+    [Tooltip("РџРѕР·РёС†РёСЏ РїРѕ Z, РѕС‚РєСѓРґР° С„РёРіСѓСЂС‹ РЅР°С‡РёРЅР°СЋС‚ Р»РµС‚РµС‚СЊ (Р·Р° РіРѕСЂРёР·РѕРЅС‚РѕРј).")]
     public float spawnZPosition = 70f;
 
-    [Tooltip("Диапазон генерации по X и Y (Y обычно 0).")]
+    [Tooltip("Р”РёР°РїР°Р·РѕРЅ РіРµРЅРµСЂР°С†РёРё РїРѕ X Рё Y (Y РѕР±С‹С‡РЅРѕ 0).")]
     public Vector2 spawnRangeXY = new Vector2(13f, 5f);
 
-    [Tooltip("Z-позиция, после которой враги уничтожаются.")]
-    public float destroyLimitZ = -25f; // Позиция уничтожения по умолчанию
+    [Tooltip("Z-РїРѕР·РёС†РёСЏ, РїРѕСЃР»Рµ РєРѕС‚РѕСЂРѕР№ РІСЂР°РіРё СѓРЅРёС‡С‚РѕР¶Р°СЋС‚СЃСЏ.")]
+    public float destroyLimitZ = -25f; // РџРѕР·РёС†РёСЏ СѓРЅРёС‡С‚РѕР¶РµРЅРёСЏ РїРѕ СѓРјРѕР»С‡Р°РЅРёСЋ
 
-    // --- Управление ---
+    // --- РЈРїСЂР°РІР»РµРЅРёРµ ---
 
     public bool isSpawning = false;
     private float nextSpawnTime;
 
-    // Свойство для получения текущей конфигурации уровня
+    // РЎРІРѕР№СЃС‚РІРѕ РґР»СЏ РїРѕР»СѓС‡РµРЅРёСЏ С‚РµРєСѓС‰РµР№ РєРѕРЅС„РёРіСѓСЂР°С†РёРё СѓСЂРѕРІРЅСЏ
     private LevelConfig CurrentConfig
     {
         get
         {
-            // Возвращаем конфигурацию текущего уровня или последнего, если уровень превышен
+            // Р’РѕР·РІСЂР°С‰Р°РµРј РєРѕРЅС„РёРіСѓСЂР°С†РёСЋ С‚РµРєСѓС‰РµРіРѕ СѓСЂРѕРІРЅСЏ РёР»Рё РїРѕСЃР»РµРґРЅРµРіРѕ, РµСЃР»Рё СѓСЂРѕРІРµРЅСЊ РїСЂРµРІС‹С€РµРЅ
             if (levelConfigs == null || levelConfigs.Count == 0) return null;
             if (currentLevel < levelConfigs.Count) return levelConfigs[currentLevel];
             return levelConfigs[levelConfigs.Count - 1];
@@ -48,14 +50,14 @@ public class SpawnManager : MonoBehaviour
 
     void Start()
     {
-        // Проверка на корректность настроек
+        // РџСЂРѕРІРµСЂРєР° РЅР° РєРѕСЂСЂРµРєС‚РЅРѕСЃС‚СЊ РЅР°СЃС‚СЂРѕРµРє
         if (baseEnemyPrefab == null || baseShapePrefab == null || levelConfigs == null || levelConfigs.Count == 0)
         {
-            Debug.LogError("SpawnManager не настроен должным образом! Проверьте префабы и конфигурации уровней.");
+            Debug.LogError("SpawnManager РЅРµ РЅР°СЃС‚СЂРѕРµРЅ РґРѕР»Р¶РЅС‹Рј РѕР±СЂР°Р·РѕРј! РџСЂРѕРІРµСЂСЊС‚Рµ РїСЂРµС„Р°Р±С‹ Рё РєРѕРЅС„РёРіСѓСЂР°С†РёРё СѓСЂРѕРІРЅРµР№.");
             return;
         }
 
-        // Установка первого интервала
+        // РЈСЃС‚Р°РЅРѕРІРєР° РїРµСЂРІРѕРіРѕ РёРЅС‚РµСЂРІР°Р»Р°
         if (CurrentConfig != null)
         {
             nextSpawnTime = Time.time + CurrentConfig.spawnInterval;
@@ -69,15 +71,15 @@ public class SpawnManager : MonoBehaviour
         if (isSpawning && Time.time >= nextSpawnTime)
         {
             SpawnRandomEnemy();
-            // Устанавливаем следующий таймер, используя текущий интервал сложности
+            // РЈСЃС‚Р°РЅР°РІР»РёРІР°РµРј СЃР»РµРґСѓСЋС‰РёР№ С‚Р°Р№РјРµСЂ, РёСЃРїРѕР»СЊР·СѓСЏ С‚РµРєСѓС‰РёР№ РёРЅС‚РµСЂРІР°Р» СЃР»РѕР¶РЅРѕСЃС‚Рё
             nextSpawnTime = Time.time + CurrentConfig.spawnInterval;
         }
     }
 
-    // --- Публичные методы управления ---
+    // --- РџСѓР±Р»РёС‡РЅС‹Рµ РјРµС‚РѕРґС‹ СѓРїСЂР°РІР»РµРЅРёСЏ ---
 
     /// <summary>
-    /// Запускает генерацию.
+    /// Р—Р°РїСѓСЃРєР°РµС‚ РіРµРЅРµСЂР°С†РёСЋ.
     /// </summary>
     public void StartSpawning()
     {
@@ -85,7 +87,7 @@ public class SpawnManager : MonoBehaviour
     }
 
     /// <summary>
-    /// Останавливает генерацию.
+    /// РћСЃС‚Р°РЅР°РІР»РёРІР°РµС‚ РіРµРЅРµСЂР°С†РёСЋ.
     /// </summary>
     private void StopSpawning()
     {
@@ -93,30 +95,29 @@ public class SpawnManager : MonoBehaviour
     }
 
     /// <summary>
-    /// Повышает уровень сложности.
+    /// РџРѕРІС‹С€Р°РµС‚ СѓСЂРѕРІРµРЅСЊ СЃР»РѕР¶РЅРѕСЃС‚Рё.
     /// </summary>
     //public void IncreaseLevel()
     //{
     //    if (currentLevel < levelConfigs.Count - 1)
     //    {
     //        currentLevel++;
-    //        Debug.Log($"Уровень сложности повышен до: {currentLevel + 1}. Интервал: {CurrentConfig.spawnInterval}с");
+    //        Debug.Log($"РЈСЂРѕРІРµРЅСЊ СЃР»РѕР¶РЅРѕСЃС‚Рё РїРѕРІС‹С€РµРЅ РґРѕ: {currentLevel + 1}. РРЅС‚РµСЂРІР°Р»: {CurrentConfig.spawnInterval}СЃ");
     //    }
     //    else
     //    {
-    //        Debug.Log("Достигнут максимальный уровень сложности.");
+    //        Debug.Log("Р”РѕСЃС‚РёРіРЅСѓС‚ РјР°РєСЃРёРјР°Р»СЊРЅС‹Р№ СѓСЂРѕРІРµРЅСЊ СЃР»РѕР¶РЅРѕСЃС‚Рё.");
     //    }
     //}
 
-    // --- Логика генерации ---
+    // --- Р›РѕРіРёРєР° РіРµРЅРµСЂР°С†РёРё ---
 
     private void SpawnRandomEnemy()
     {
         LevelConfig config = CurrentConfig;
         if (config == null) return;
 
-        // 1. Создаем EnemyData (логика позиционирования остается прежней)
-        float randomX = Random.Range(-spawnRangeXY.x, spawnRangeXY.x);
+        float randomX = UnityEngine.Random.Range(-spawnRangeXY.x, spawnRangeXY.x);
         Vector3 spawnPosition = new Vector3(randomX, 0, spawnZPosition);
         GameObject newEnemyGO = Instantiate(baseEnemyPrefab, spawnPosition, Quaternion.identity);
         EnemyData enemyData = newEnemyGO.GetComponent<EnemyData>();
@@ -127,70 +128,67 @@ public class SpawnManager : MonoBehaviour
             return;
         }
 
-        // 2. Вызываем новый метод для создания фигуры
         CreateShapesInSquare(enemyData, config);
-
-        // 3. Настраиваем движение и лимит уничтожения
-        // enemyData.speed = config.enemySpeed;
         enemyData.SetDestroyZPosition(destroyLimitZ);
-        
+
+        // рџ”” РЈРІРµРґРѕРјР»СЏРµРј GameController, С‡С‚Рѕ РІСЂР°Рі СЃРѕР·РґР°РЅ
+        OnEnemySpawned?.Invoke(enemyData);
     }
+
 
     private void CreateShapesInSquare(EnemyData enemyData, LevelConfig config)
     {
-        // 1. Вычисляем параметры
+        // 1. Р’С‹С‡РёСЃР»СЏРµРј РїР°СЂР°РјРµС‚СЂС‹
         int minShapes = config.minShapes;
         int maxShapes = config.maxShapes;
 
-        // Определяем общее количество Shape, которое нужно разместить
-        int shapesToSpawn = Random.Range(minShapes, maxShapes + 1);
+        // РћРїСЂРµРґРµР»СЏРµРј РѕР±С‰РµРµ РєРѕР»РёС‡РµСЃС‚РІРѕ Shape, РєРѕС‚РѕСЂРѕРµ РЅСѓР¶РЅРѕ СЂР°Р·РјРµСЃС‚РёС‚СЊ
+        int shapesToSpawn = UnityEngine.Random.Range(minShapes, maxShapes + 1);
 
-        // Определяем размер сетки (сторона квадрата)
+        // РћРїСЂРµРґРµР»СЏРµРј СЂР°Р·РјРµСЂ СЃРµС‚РєРё (СЃС‚РѕСЂРѕРЅР° РєРІР°РґСЂР°С‚Р°)
         int sideLength = Mathf.CeilToInt(Mathf.Sqrt(shapesToSpawn));
 
-        // Здоровье для каждого Shape
+        // Р—РґРѕСЂРѕРІСЊРµ РґР»СЏ РєР°Р¶РґРѕРіРѕ Shape
         int totalHealth = Mathf.RoundToInt(config.baseShapeHealth * config.healthMultiplier);
 
-        // Расстояние между центрами соседних Shape
+        // Р Р°СЃСЃС‚РѕСЏРЅРёРµ РјРµР¶РґСѓ С†РµРЅС‚СЂР°РјРё СЃРѕСЃРµРґРЅРёС… Shape
         float spacing = 1.2f;
 
-        // Начальная позиция для центрирования
+        // РќР°С‡Р°Р»СЊРЅР°СЏ РїРѕР·РёС†РёСЏ РґР»СЏ С†РµРЅС‚СЂРёСЂРѕРІР°РЅРёСЏ
         float startX = -(sideLength - 1) * spacing / 2f;
         float startY = -(sideLength - 1) * spacing / 2f;
 
         int shapeCounter = 0;
 
-        // 2. Генерация и размещение в сетке
+        // 2. Р“РµРЅРµСЂР°С†РёСЏ Рё СЂР°Р·РјРµС‰РµРЅРёРµ РІ СЃРµС‚РєРµ
         for (int row = 0; row < sideLength; row++)
         {
             for (int col = 0; col < sideLength; col++)
             {
                 if (shapeCounter >= shapesToSpawn)
                 {
-                    // Останавливаемся, если достигнуто необходимое количество Shape
+                    // РћСЃС‚Р°РЅР°РІР»РёРІР°РµРјСЃСЏ, РµСЃР»Рё РґРѕСЃС‚РёРіРЅСѓС‚Рѕ РЅРµРѕР±С…РѕРґРёРјРѕРµ РєРѕР»РёС‡РµСЃС‚РІРѕ Shape
                     return;
                 }
 
-                // Создаем Shape как дочерний объект
+                // РЎРѕР·РґР°РµРј Shape РєР°Рє РґРѕС‡РµСЂРЅРёР№ РѕР±СЉРµРєС‚
                 GameObject newShapeGO = Instantiate(baseShapePrefab, enemyData.transform);
                 Shape shapeComponent = newShapeGO.GetComponent<Shape>();
 
-                // Вычисляем локальную позицию
+                // Р’С‹С‡РёСЃР»СЏРµРј Р»РѕРєР°Р»СЊРЅСѓСЋ РїРѕР·РёС†РёСЋ
                 float localX = startX + col * spacing;
                 float localZ = startY + row * spacing;
 
-                // Устанавливаем локальную позицию (Y и X)
+                // РЈСЃС‚Р°РЅР°РІР»РёРІР°РµРј Р»РѕРєР°Р»СЊРЅСѓСЋ РїРѕР·РёС†РёСЋ (Y Рё X)
                 newShapeGO.transform.localPosition = new Vector3(localX, 0, localZ);
 
                 if (shapeComponent != null)
                 {
-                    shapeComponent.health = totalHealth;
-                    controller.SubscribeToShape(shapeComponent);
-                    // Подписка должна происходить в EnemyData.Start/Awake
+                    shapeComponent.health = totalHealth;                
                 }
                 else
                 {
-                    Debug.LogError("Ошибка: Shape Prefab должен содержать Shape!");
+                    Debug.LogError("РћС€РёР±РєР°: Shape Prefab РґРѕР»Р¶РµРЅ СЃРѕРґРµСЂР¶Р°С‚СЊ Shape!");
                 }
 
                 shapeCounter++;
@@ -202,20 +200,20 @@ public class SpawnManager : MonoBehaviour
     {
         StopSpawning();
 
-        // 2. Находим все объекты, содержащие EnemyData (ваши основные вражеские контейнеры)
+        // 2. РќР°С…РѕРґРёРј РІСЃРµ РѕР±СЉРµРєС‚С‹, СЃРѕРґРµСЂР¶Р°С‰РёРµ EnemyData (РІР°С€Рё РѕСЃРЅРѕРІРЅС‹Рµ РІСЂР°Р¶РµСЃРєРёРµ РєРѕРЅС‚РµР№РЅРµСЂС‹)
         EnemyData[] activeEnemies = FindObjectsOfType<EnemyData>();
 
-        // 3. Уничтожаем каждый найденный объект
+        // 3. РЈРЅРёС‡С‚РѕР¶Р°РµРј РєР°Р¶РґС‹Р№ РЅР°Р№РґРµРЅРЅС‹Р№ РѕР±СЉРµРєС‚
         foreach (EnemyData enemy in activeEnemies)
         {
-            // Используем DestroyImmediate для немедленного удаления, 
-            // или просто Destroy(enemy.gameObject) для удаления в конце кадра.
-            // Для перехода между уровнями достаточно простого Destroy.
+            // РСЃРїРѕР»СЊР·СѓРµРј DestroyImmediate РґР»СЏ РЅРµРјРµРґР»РµРЅРЅРѕРіРѕ СѓРґР°Р»РµРЅРёСЏ, 
+            // РёР»Рё РїСЂРѕСЃС‚Рѕ Destroy(enemy.gameObject) РґР»СЏ СѓРґР°Р»РµРЅРёСЏ РІ РєРѕРЅС†Рµ РєР°РґСЂР°.
+            // Р”Р»СЏ РїРµСЂРµС…РѕРґР° РјРµР¶РґСѓ СѓСЂРѕРІРЅСЏРјРё РґРѕСЃС‚Р°С‚РѕС‡РЅРѕ РїСЂРѕСЃС‚РѕРіРѕ Destroy.
             Destroy(enemy.gameObject);
         }
 
-        // Очистка всех пуль
-        // Если пули имеют отдельный скрипт (например, Bullet), можно также очистить и их
+        // РћС‡РёСЃС‚РєР° РІСЃРµС… РїСѓР»СЊ
+        // Р•СЃР»Рё РїСѓР»Рё РёРјРµСЋС‚ РѕС‚РґРµР»СЊРЅС‹Р№ СЃРєСЂРёРїС‚ (РЅР°РїСЂРёРјРµСЂ, Bullet), РјРѕР¶РЅРѕ С‚Р°РєР¶Рµ РѕС‡РёСЃС‚РёС‚СЊ Рё РёС…
         Bullet[] bullets = FindObjectsOfType<Bullet>();
         foreach (Bullet bullet in bullets)
         {
@@ -224,6 +222,6 @@ public class SpawnManager : MonoBehaviour
 
         PlayersManagerSingletone.Instance.LocalPlayer.ShooterComponent.StopShooting();
 
-        Debug.Log($"Уничтожено {activeEnemies.Length} врагов и {bullets.Length} пуль.");
+        Debug.Log($"РЈРЅРёС‡С‚РѕР¶РµРЅРѕ {activeEnemies.Length} РІСЂР°РіРѕРІ Рё {bullets.Length} РїСѓР»СЊ.");
     }
 }

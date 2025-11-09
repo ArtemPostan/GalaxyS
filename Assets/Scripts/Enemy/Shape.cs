@@ -9,7 +9,14 @@ public class Shape : MonoBehaviour, IHitable
 
     public int health;
 
+    private int score;
+
     [SerializeField] private TextMeshProUGUI healtText;
+
+    private void Awake()
+    {
+        score = health / 50;
+    }
 
     private void Start()
     {        
@@ -36,5 +43,9 @@ public class Shape : MonoBehaviour, IHitable
             return;
         }
         DisplayHealth();
+    }
+    public int GetScore()
+    {
+        return score;
     }
 }

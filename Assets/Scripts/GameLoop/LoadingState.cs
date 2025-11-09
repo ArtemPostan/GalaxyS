@@ -45,7 +45,7 @@ public class LevelStartState : IGameState
 {
     public void EnterState(GameController controller)
     {
-        controller.ResetLevelData(); // <-- —брос счетчика CurrentKills = 0
+        //controller.ResetLevelData(); // <-- —брос счетчика CurrentKills = 0
         controller.StartLevel();
         controller.ChangeState(GameState.InGame);
     }

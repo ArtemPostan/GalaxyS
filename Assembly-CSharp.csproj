@@ -91,6 +91,7 @@
     <Compile Include="Assets\TextMesh Pro\Examples &amp; Extras\Scripts\VertexJitter.cs" />
     <Compile Include="Assets\Scripts\Player\IPlayerInput.cs" />
     <Compile Include="Assets\Scripts\Combat\Bullet.cs" />
+    <Compile Include="Assets\Scripts\GameLoop\LevelInfo.cs" />
     <Compile Include="Assets\SlimUI\Modern Menu 1\Scripts\Managers\UISettingsManager.cs" />
     <Compile Include="Assets\SlimUI\Modern Menu 1\Scripts\Audio\CheckSFXVolume.cs" />
     <Compile Include="Assets\TextMesh Pro\Examples &amp; Extras\Scripts\TMP_DigitValidator.cs" />
@@ -125,6 +126,7 @@
     <Compile Include="Assets\Scripts\GameLoop\LevelConfig.cs" />
     <Compile Include="Assets\Joystick Pack\Examples\JoystickPlayerExample.cs" />
     <Compile Include="Assets\Scripts\Player\PlayerStats.cs" />
+    <Compile Include="Assets\Scripts\Player\MoveComponent.cs" />
     <Compile Include="Assets\TextMesh Pro\Examples &amp; Extras\Scripts\TMP_TextInfoDebugTool.cs" />
     <Compile Include="Assets\Scripts\GameLoop\SpawnManager.cs" />
     <Compile Include="Assets\Scripts\Player\PlayerInputHandler.cs" />

@@ -1,9 +1,3 @@
-using System;
-using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
-
-[Serializable]
 public class PlayerStats
 {
 
@@ -20,7 +14,7 @@ public class PlayerStats
     public float minRotAngle = -20f;
     public float maxRotAngle = 20f;
 
-    public int currentLevel = 0;
+    public int currentLevel = 1;
     public int scoreInCurrentLevel = 0;
 
     public int fireGunLvl = 0;
@@ -40,6 +34,11 @@ public class PlayerStats
         // ”бедитесь, что все стартовые значени€ установлены
         shootingSpeed = originShootingSpeed;
         health = maxHealth;
+    }
+
+    public void ResetScore()
+    {
+        scoreInCurrentLevel = 0;        
     }
 
 }

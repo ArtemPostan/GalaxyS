@@ -1,82 +1,90 @@
 using System;
-using System.Collections;
 using System.Collections.Generic;
-using System.Globalization;
 using UnityEngine;
 
 public class EnemyData : MonoBehaviour
 {
-    List<Shape> shapes;  
+    // События для внешних подписчиков (например, GameController)
+    public event Action<int> OnEnemyPartDestroyed;          // очки за уничтожение части
+    public event Action<int> OnEnemyCompletelyDestroyed;    // бонус за уничтожение всего врага
 
-    public float speed = 10f;
+    [Header("Движение врага")]
+    [SerializeField] private float speed = 10f;
+    [SerializeField] private float destroyZPosition = -10f;
 
-    private float destroyZPosition = -10f;
+    [Header("Настройки бонуса")]
+    [SerializeField] private int bonusMultiplier = 2; // множитель бонусных очков за последнюю часть
 
-    public int shapesCount => shapes.Count;
+    private List<Shape> shapes; // все части врага
+
+    public int ShapesCount => shapes?.Count ?? 0;
 
     private void Start()
     {
+        // Находим все дочерние Shape-компоненты
         shapes = new List<Shape>(GetComponentsInChildren<Shape>());
-        Debug.Log($"Найдено дочерних компонентов типа ChildComponent: {shapesCount}");
+        Debug.Log($"Найдено дочерних компонентов типа Shape: {ShapesCount}");
+
+        // Подписываемся на события каждой части
+        foreach (Shape shape in shapes)
+        {
+            shape.OnShapeDestroyed += HandleShapeDestroyed;
+        }
+    }
+
+    private void Update()
+    {
+        // Простое движение врага вперёд
+        transform.Translate(Vector3.back * speed * Time.deltaTime);
+
+        // Удаляем врага, если он вышел за пределы
+        if (transform.position.z < destroyZPosition)
+        {
+            Destroy(gameObject);
+        }
+    }
+
+    private void HandleShapeDestroyed(Shape destroyedShape)
+    {        
+        shapes.Remove(destroyedShape);      
+
+        // Проверяем, остались ли части
+        if (ShapesCount == 0)
+        {           
+
+            Destroy(gameObject);
+        }
+    }
+
+    private void OnDestroy()
+    {
+        // Безопасно отписываемся от событий всех частей
+        if (shapes == null) return;
 
         foreach (Shape shape in shapes)
         {
-            // Подписываемся на событие Shape
-            shape.OnShapeDestroyed += HandleShapeDestroyed;
-        }
-
-    }
-    private void HandleShapeDestroyed(Shape destroyedShape)
-    {
-        // 4. Удаляем уничтоженный Shape из списка родителя
-        shapes.Remove(destroyedShape);
-
-        // Проверяем, умер ли враг (исчезли ли все Shape)
-        Die();
-    }
-    private void Die()
-    {
-        if (shapesCount == 0)
-        {
-            Debug.Log("Смерть врага");
+            if (shape != null)
+                shape.OnShapeDestroyed -= HandleShapeDestroyed;
         }
     }
 
-    void Update()
-    {        
-        transform.Translate(Vector3.back * speed * Time.deltaTime);
-
-        
-        if (transform.position.z < destroyZPosition)
-        {            
-            Destroy(gameObject);
-           
-        }
-    }
+    // --- Вспомогательные методы ---
 
     public void SetDestroyZPosition(float z)
     {
         destroyZPosition = z;
     }
 
-    public void SetHealth()
+    public void SetSpeed(float newSpeed)
     {
-        foreach (Shape shape in shapes)
-        {
-            shape.health = 100;
-        }
+        speed = newSpeed;
     }
 
-    private void OnDestroy()
+    public void SetHealthForAllParts(int value)
     {
-        // Если EnemyData будет уничтожен раньше, чем дочерние Shape,
-        // нужно отписаться, чтобы избежать висячих ссылок.
         foreach (Shape shape in shapes)
         {
-            if (shape != null) // Проверяем, что Shape еще существует
-            {
-                shape.OnShapeDestroyed -= HandleShapeDestroyed;
-            }
+            shape.health = value;
         }
     }
 }
